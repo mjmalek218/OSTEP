@@ -1,0 +1,77 @@
+/* THIS CODE IS A SOLUTION FOR THE PARENT THREAD CREATING A SINGLE CHILD, 
+   WAITING FOR THE CHILD TO PRINT ITS MESSAGE, AND THEN TERMINATING */
+
+int done = 0;
+
+/* the lock, or mutex, is for the condition */ 
+pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER; //really need to figure out what this does
+pthread_cond_t c = PTHREAD_COND_INITIALIZER;
+
+void thr_exit()
+{
+  Pthread_mutex_lock(&m);
+  
+
+}
+
+
+/* Need to think about *why* this order is used.
+
+   While checking the done variable, the lock needs 
+   to be held for sure. Otherwise it could potentially
+   be altered in the child thread during the check without 
+   the parent thread knowing. More specifically, let's say
+   the lock is *not* held. Then what may happen is the following:
+
+         1. Parent checks done, sees that it is 0
+	 2. Process switches to the child thread
+         3. Child thread finishes, signals for threads to wake up,
+            none waiting
+	 4. Parent still continues on its course, calls 
+            cond_wait, waits forever. 
+         5. Program deadlocks 
+  
+   This is why condition needs to be an atomic operation as well. 
+   If, from the program's perspective releasing the lock and then 
+   were sequential, then the above problem could always still occur
+   in that gap. 
+
+   If cond_wait is signaled, the lock will be re-acquired (to check
+   to see if the condition has truly been satisfied) and then it is 
+   returned. 
+
+   *KEY CONCEPT THAT APPLIES TO THE CALTRAIN PROGRAM*
+
+   For the passengers waiting on the seats to be opened, a while loop
+   should be used to check for the condition, to make sure it is still 
+   valid. Otherwise, two different passengers might go for the resource
+   in conflict 
+
+ */
+
+void thr_join()
+{
+  /* the lock is really for the done variable. */
+  Pthread_mutex_lock(&m);
+  
+  /* Here note it is the *parent* thread, the one with main, that
+     blocks itself waiting for the child */
+  while (done == 0)
+    {
+      Pthread_cond_wait(&c, &m);
+      /* the lock needs to be acquired before the above function is called,
+         then it is re-acquired, then released below. */
+    }
+
+  Pthread_mutex_unlock(&m);
+}
+
+
+/* the arguments here implies that it takes standard input */
+int main (int argc, char *argv[])
+{
+  printf("parent: begin\n");
+  pthread_t p;
+  Pthread_create(&p, NULL, child, NULL);
+  thr_join; //this is where the thread *waits* (blocks, not busy wait)
+}

@@ -1,0 +1,77 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage[margin = .5in]{geometry}
+
+\begin{document}
+
+\noindent \textbf{Homework for Intro to Concurrency}  %% FILL THIS IN
+
+
+\begin{enumerate}
+
+\item 
+ 
+Instruction Run: ./x86.py -p loop.s -t 1 -i 100 -R dx
+
+loop.s should subtract 1 from \%dx, check to see if the result is negative, and if it isnt, 
+repeat the subtraction until it is.  
+
+Once I ran the ``-c'' command it cleared up some confusion I had regarding the way the output
+was formatted: it traces the register but prints it out *next to* a single instruction, not
+after an entire run through of the code. This is more verbose than I expected but better
+I guess for detailed inspection. 
+
+So since there was only run through, it makes perfect sense that initial value was 0.
+
+\item 
+
+Instruction Run: ./x86.py -p loop.s -t 2 -i 100 -a dx=3,dx=3 -R dx
+
+Upon first seeing this I immediatley got hung up on the double initialization of the same
+register. But what I finally realized is that in a multi-threaded program, *every single 
+thread has its own set of registers*. The shared portion of the thread is main memory, not 
+registers or program counter, both of which preserved via context switches. 
+
+Also note the interrupt every one hundred instructions is essentially meaningless here, as 
+it takes far less than a hundred instructions to terminate. 
+
+So to finally answer, the question, I predicted duplicate behavior by the threads, repeating
+the subtraction operation until \%dx goes from 3 to -1...and that is exactly what happened.
+
+\item 
+
+instruction run: ./x86.py -p loop.s -t 2 -i 100 -a dx=3,dx=3 -R dx
+
+No, it doesn't. And why would it? We're operating on pre-initialized registers that are 
+unique to each thread, *not* to shared memory locations which are the crux of the issue. All
+that happens is the threads interleaved: otherwise the behavior is preserved. 
+
+\item 
+
+Instruction Run: ./x86.py -p looping-race-nolock.s -t 1 -M 2000
+
+Looking at the 'cat' terminal output, the code moves the memory from location 2000 into register
+\%ax, adds 1 to it, then moves it back. After this is done the code subtracts 1 from \%bx, tests
+to see if \%bx is 0 yet. If it isnt, it jumps back up to the top. 
+
+Even without running the program it is is clear this code is inefficient. 
+
+\item 
+
+\item 
+
+\item 
+
+\item 
+
+\item 
+
+
+\end{enumerate}
+
+
+
+
+\end{document} 
